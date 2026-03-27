@@ -12,6 +12,7 @@ import {
   CheckCheck,
   LogOut,
   Key,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -42,6 +43,7 @@ const SECTIONS = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Shield },
   { id: "display", label: "Display", icon: Monitor },
+  { id: "privacy", label: "Privacy", icon: AlertCircle },
   { id: "gamification", label: "Gamification", icon: Crown },
 ] as const;
 
@@ -377,7 +379,7 @@ function DisplaySection() {
     { code: "es", label: "Español" },
     { code: "fr", label: "Français" },
     { code: "pt", label: "Português" },
-    { code: "hi", label: "हिन्दी" },
+    { code: "hi", label: "��िन्दी" },
   ];
 
   const [language, setLanguage] = useState("en");
@@ -425,6 +427,61 @@ function DisplaySection() {
   );
 }
 
+// ─── Privacy section ──────────────────────────────────────────────────────────
+
+function PrivacySection() {
+  const [profilePublic, setProfilePublic] = useState(false);
+  const [dataCollection, setDataCollection] = useState(true);
+  const [analyticsTracking, setAnalyticsTracking] = useState(true);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Privacy</CardTitle>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          Control how your data is used and shared.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Toggle
+          checked={profilePublic}
+          onChange={setProfilePublic}
+          label="Public Profile"
+          description="Allow other users to view your profile and transfer history"
+        />
+        <Toggle
+          checked={dataCollection}
+          onChange={setDataCollection}
+          label="Data Collection"
+          description="Allow RemitLend to collect anonymized usage data to improve services"
+        />
+        <Toggle
+          checked={analyticsTracking}
+          onChange={setAnalyticsTracking}
+          label="Analytics Tracking"
+          description="Help us understand user behavior through non-invasive analytics"
+        />
+        <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
+            Data Download & Deletion
+          </p>
+          <div className="space-y-2">
+            <Button variant="outline" className="w-full">
+              Download My Data
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-950/20"
+            >
+              Request Account Deletion
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -442,6 +499,8 @@ export default function SettingsPage() {
         return <SecuritySection />;
       case "display":
         return <DisplaySection />;
+      case "privacy":
+        return <PrivacySection />;
       case "gamification":
         return <GamificationSettings />;
     }

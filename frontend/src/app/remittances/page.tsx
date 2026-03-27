@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Calendar,
   DollarSign,
+  Download,
 } from "lucide-react";
 import { useWalletStore, selectIsWalletConnected, selectWalletAddress } from "../stores/useWalletStore";
 import { useRemittances, type Remittance } from "../hooks/useApi";
@@ -22,8 +23,8 @@ import Link from "next/link";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+function formatCurrency(value: number, currency: string = "USD"): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
 }
 
 function formatDate(iso: string): string {
@@ -32,6 +33,23 @@ function formatDate(iso: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function getExchangeRate(fromCurrency: string, toCurrency: string): number {
+  // Simplified exchange rates (in production, fetch from API)
+  const rates: Record<string, number> = {
+    "USD-EUR": 0.92,
+    "USD-GBP": 0.79,
+    "USD-INR": 83.12,
+    "USD-NGN": 1540.0,
+    "USD-KES": 129.5,
+    "EUR-USD": 1.09,
+    "GBP-USD": 1.27,
+    "INR-USD": 0.012,
+    "NGN-USD": 0.00065,
+    "KES-USD": 0.0077,
+  };
+  return rates[`${fromCurrency}-${toCurrency}`] ?? 1;
 }
 
 const STATUS_CONFIG: Record<
@@ -61,6 +79,33 @@ const STATUS_CONFIG: Record<
 };
 
 type StatusFilter = "all" | Remittance["status"];
+
+// ─── Export helper ────────────────────────────────────────────────────────────
+
+function exportToCSV(remittances: Remittance[]): void {
+  const headers = ["Recipient", "Amount", "From", "To", "Date", "Status"];
+  const rows = remittances.map((r) => [
+    r.recipientAddress,
+    r.amount,
+    r.fromCurrency,
+    r.toCurrency,
+    formatDate(r.createdAt),
+    r.status,
+  ]);
+  
+  const csv = [
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `remittance-history-${new Date().toISOString().split("T")[0]}.csv`;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
 
 // ─── Empty state ───────────────────────────────────────────────────────────────
 
@@ -184,13 +229,24 @@ export default function RemittancesPage() {
             {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ""}
           </p>
         </div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-        >
-          <ArrowUpRight className="h-4 w-4" />
-          New Remittance
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          {filtered.length > 0 && (
+            <button
+              onClick={() => exportToCSV(filtered)}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          )}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+          >
+            <ArrowUpRight className="h-4 w-4" />
+            New Remittance
+          </Link>
+        </div>
       </header>
 
       {/* Summary Stats */}
@@ -401,12 +457,17 @@ export default function RemittancesPage() {
                         </span>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                          {formatCurrency(r.amount)}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                            {formatCurrency(r.amount, r.fromCurrency)}
+                          </span>
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                            {formatCurrency(r.amount * getExchangeRate(r.fromCurrency, r.toCurrency), r.toCurrency)}
+                          </span>
+                        </div>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                           {r.fromCurrency} → {r.toCurrency}
                         </span>
                       </div>
